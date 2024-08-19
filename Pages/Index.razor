@@ -1,0 +1,156 @@
+﻿@page "/"
+@attribute [Authorize]
+@inject IAccountService AccountService
+@inject ICoursesService CoursesService
+@inject NavigationManager NavigationManager
+<div class="p-4">
+ 
+    @if (studentCourses != null && studentCourses.Count > 0)
+        {
+        <div class="container">
+            <h1>Hi @curentUser.FirstName!</h1>
+            <p>Below ae the course that you are registerd for.</p>
+            <p>Fell free to make adjustments to where required.</p>
+        </div>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 30%">Course Name</th>
+                    <th style="width: 30%">Course Description</th>
+                    <th style="width: 30%">Deregister from Course</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var course in studentCourses)
+                    {
+                    //var stCourrse = CoursesService.Courses.FirstOrDefault(x => x.Id == course.CourseId);
+                    <tr>
+                        <td>@course.Name</td>
+                        <td>@course.Description</td>
+                        <td>
+                            <button @onclick="@(() => DeregisterUserForCouse(course.Id,curentUser.Id))" disabled="@course.IsDeleting" class="btn btn-primary">Deregister</button>
+                        </td>
+                    </tr>
+            }
+            </tbody>
+        </table>
+        <div class="container">
+            <h1>You can add any courses from the following couses below</h1>
+            
+        </div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th style="width: 30%">Course Name</th>
+                    <th style="width: 30%">Course Description</th>
+                    <th style="width: 30%">Register for Course</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var course in availableCourses)
+                    {
+                    <tr>
+                        <td>@course.Name</td>
+                        <td>@course.Description</td>
+                        <td>
+                            <button @onclick="@(() => RegisterUserForCouse(course.Id,curentUser.Id))" disabled="@course.IsDeleting" class="btn btn-primary">Register</button>
+                        </td>
+                    </tr>
+                    }
+            </tbody>
+        </table>
+        }
+    else
+        {
+        if (CoursesService.Courses!=null){
+            <div class="container">
+                <h1>Hi @curentUser.FirstName!</h1>
+                <span>You do not seem to be registered into any course, </span><br />
+                <span>Please select an from below to Register</span><br />
+            </div>
+
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th style="width: 30%">Course Name</th>
+                        <th style="width: 30%">Course Description</th>
+                        <th style="width: 30%">Register for Course</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var course in availableCourses)
+                        {
+                        <tr>
+                            <td>@course.Name</td>
+                            <td>@course.Description</td>
+                            <td>
+                                <button @onclick="@(() => RegisterUserForCouse(course.Id,curentUser.Id))" disabled="@course.IsDeleting" class="btn btn-primary">Register</button>
+                            </td>
+                        </tr>
+                        }
+                </tbody>
+            </table>
+            }
+        }
+</div>
+@code{
+    IList<Models.Course> allCourses = new List<Models.Course>();
+    bool loading = false;
+
+    User curentUser = new User();
+    List<Models.Course> studentCourses = new List<Models.Course>();
+    IList<Models.Course> availableCourses = new List<Models.Course>();
+
+    protected override void OnInitialized( )
+        {
+        // redirect to home if already logged in
+
+        allCourses = CoursesService.Courses;
+        curentUser = AccountService.User;        
+
+        if (allCourses != null && allCourses.Count>0){
+            if (curentUser.EnroledCourse!=null){
+                foreach(var curentCourse in curentUser.EnroledCourse)
+                    {
+                    studentCourses.Add(allCourses.FirstOrDefault(x => x.Id == curentCourse.CourseId));
+                    }
+                Console.WriteLine($"Current User : {curentUser.FirstName}, Count of Cources : {allCourses.Count} Enrolled couses : {studentCourses.Count}");
+                foreach (var courseromList in allCourses)
+                    {
+                    if (!studentCourses.Contains(courseromList))
+                        {
+                        availableCourses.Add(courseromList);
+                        }
+                    }
+                }
+            else
+                {
+                availableCourses = allCourses;
+                }
+            }
+
+        }
+    // protected override async Task OnInitializedAsync( )
+    //     {
+    //     loading = true;
+    //     Console.WriteLine($"OnInitializedAsync");
+    //     courses = await CoursesService.GetAllCourses();
+    //     loading = false;
+    //     }
+    public async Task RegisterUserForCouse(string CourseId,string userId)
+        {
+        Console.WriteLine($"Reistering for a course with the id : {CourseId}");
+        await CoursesService.RegisterStudentToCourse(CourseId, userId);
+
+        NavigationManager.NavigateTo("/courses/list");
+        StateHasChanged();
+        }
+    public async Task DeregisterUserForCouse(string CourseId, string userId)
+        {
+        await CoursesService.DeregisterStudentToCourse(CourseId, userId);
+        NavigationManager.NavigateTo("/courses/list");
+        StateHasChanged();
+        }
+
+}

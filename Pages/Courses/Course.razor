@@ -1,0 +1,73 @@
+﻿@page "/course/list"
+@attribute [Authorize]
+@inject ICoursesService CoursesService;
+@inject IAccountService AccountService;
+@inject NavigationManager NavigationManager;
+@inject IAlertService AlertService;
+
+<div class="card">
+ 
+ 
+    <div class="card-deck">
+        <div class="card">
+        <div class="card-body">
+            <p class="card-text">
+                    List of available courses
+            </p>
+        </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <p class="card-text">
+                    <NavLink href="/courses/add" class="btn btn-sm btn-success mb-2">Add a Course</NavLink>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (courses.Count > 0)
+            {
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th style="width: 30%">Course Name</th>
+                        <th style="width: 30%">Course Description</th>
+                        <th style="width: 30%"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var course in courses)
+                        {
+                        <tr>
+                            <td>@course.Name</td>
+                            <td>@course.Description</td>
+                            <td>
+                                <button @onclick="@(() => RemoveCourse(course.Id))" disabled="@course.IsDeleting" class="btn btn-primary">Remove</button>
+                            </td>
+                        </tr>
+                        }
+                </tbody>
+            </table>
+
+            }
+    </div>
+</div>
+@code {
+    private bool loading;
+    private IList<Models.Course> courses = new List<Models.Course>();
+
+    protected override async Task OnInitializedAsync( )
+        {
+        loading = true;
+        courses = await CoursesService.GetAllCourses();
+        loading = false;
+        }
+
+    private async void RemoveCourse(string courseId )
+        {
+        await CoursesService.DeleteCourse(courseId);
+        AlertService.Info($"Course with ID {courseId} has been removed from list");
+        NavigationManager.NavigateTo("/courses/list");
+        StateHasChanged();
+        }
+}
